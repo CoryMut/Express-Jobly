@@ -6,7 +6,6 @@ const userUpdateSchema = require(__basedir + '/schema/userUpdateSchema.json');
 const validator = require('validator');
 
 async function checkForUsername(req, res, next) {
-	console.log('in checkForUsername');
 	try {
 		if (!req.params) {
 			throw new ExpressError('Missing parameters', 400);
@@ -28,7 +27,6 @@ async function checkForUsername(req, res, next) {
 }
 
 function validateSchema(req, res, next) {
-	console.log('in validateSchema');
 	let result;
 
 	if (req.method === 'PATCH') {

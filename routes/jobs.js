@@ -35,7 +35,7 @@ router.post('/', adminRequired, validateSchema, async (req, res, next) => {
 	}
 });
 
-router.get('/:id', authRequired, checkForID, async (req, res, next) => {
+router.get('/:id', checkForID, authRequired, async (req, res, next) => {
 	try {
 		const job = res.locals.job;
 		return res.status(200).json({ job });

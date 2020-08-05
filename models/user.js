@@ -62,7 +62,6 @@ class User {
 
 	static async save(query, values) {
 		const result = await db.query(`${query}`, [ ...values ]);
-		console.log(result.rows[0]);
 		delete result.rows[0].password;
 		return result.rows[0];
 	}

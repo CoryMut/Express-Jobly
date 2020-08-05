@@ -7,14 +7,32 @@ const request = require('supertest');
 const app = require('../../app');
 const db = require('../../db');
 const moment = require('moment');
+const bcrypt = require('bcrypt');
 
 let testCompany;
+let _token;
 
 beforeAll(async () => {
 	const company = await db.query(
 		`INSERT INTO companies (handle, name, num_employees, description, logo_url) VALUES ('apple','Apple', 5, 'We do not sell apples. I know, confusing.', 'https://9to5mac.com/wp-content/uploads/sites/6/2018/02/logo.jpg?quality=82&strip=all') RETURNING *`
 	);
 	testCompany = company.rows[0];
+
+	const hashedPassword = await bcrypt.hash('password', 1);
+	await db.query(
+		`INSERT INTO users 
+					(username, password, first_name, last_name, email, is_admin)
+					VALUES
+					('testUser',$1,'Test','User','testuser@example.com',true) `,
+		[ hashedPassword ]
+	);
+
+	const response = await request(app).post('/login').send({
+		username : 'testUser',
+		password : 'password'
+	});
+
+	_token = response.body.token;
 });
 
 beforeEach(async () => {
@@ -32,12 +50,13 @@ afterEach(async () => {
 
 afterAll(async () => {
 	await db.query(`DELETE FROM companies`);
+	await db.query(`DELETE FROM users`);
 	await db.end();
 });
 
 describe('GET /jobs', () => {
 	test('Get all jobs', async () => {
-		const res = await request(app).get('/jobs');
+		const res = await request(app).get('/jobs').send({ _token });
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toEqual({ jobs: [ testJob ] });
 	});
@@ -45,7 +64,7 @@ describe('GET /jobs', () => {
 
 describe('GET /jobs/:id', () => {
 	test('Gets a single job', async () => {
-		const res = await request(app).get(`/jobs/${testJob.id}`);
+		const res = await request(app).get(`/jobs/${testJob.id}`).send({ _token });
 		testJob.company = {
 			handle        : 'apple',
 			name          : 'Apple',
@@ -70,11 +89,19 @@ describe('POST /jobs', () => {
 			title          : 'Accountant',
 			salary         : 50000,
 			equity         : 0.5,
-			company_handle : 'apple'
+			company_handle : 'apple',
+			_token         : _token
 		};
 		const res = await request(app).post('/jobs').send(newJob);
 		expect(res.statusCode).toBe(201);
-		expect(res.body.job).toEqual(expect.objectContaining({ ...newJob }));
+		expect(res.body.job).toEqual(
+			expect.objectContaining({
+				title          : 'Accountant',
+				salary         : 50000,
+				equity         : 0.5,
+				company_handle : 'apple'
+			})
+		);
 	});
 
 	test('Reject POST request because bad jsonschema', async () => {
@@ -82,7 +109,8 @@ describe('POST /jobs', () => {
 			title          : 'Accountant',
 			salary         : 'STRING NOT NUMBER',
 			equity         : 0.5,
-			company_handle : 'apple'
+			company_handle : 'apple',
+			_token         : _token
 		});
 		expect(response.statusCode).toBe(400);
 	});
@@ -92,7 +120,8 @@ describe('POST /jobs', () => {
 			title          : 'Accountant',
 			salary         : 50000,
 			equity         : 1.1,
-			company_handle : 'apple'
+			company_handle : 'apple',
+			_token         : _token
 		});
 		expect(response.statusCode).toBe(400);
 	});
@@ -104,7 +133,8 @@ describe('PATCH /jobs/:id', () => {
 			title          : 'Accountant',
 			salary         : 50000,
 			equity         : 0.7,
-			company_handle : 'apple'
+			company_handle : 'apple',
+			_token         : _token
 		});
 		expect(res.statusCode).toBe(200);
 		expect(res.body.job).toEqual(
@@ -121,7 +151,8 @@ describe('PATCH /jobs/:id', () => {
 			title          : 'Accountant',
 			salary         : 'STRING NOT A NUMBER',
 			equity         : 0.5,
-			company_handle : 'apple'
+			company_handle : 'apple',
+			_token         : _token
 		});
 		expect(response.statusCode).toBe(400);
 	});
@@ -131,7 +162,8 @@ describe('PATCH /jobs/:id', () => {
 			title          : 'Accountant',
 			salary         : 50000,
 			equity         : 1.1,
-			company_handle : 'apple'
+			company_handle : 'apple',
+			_token         : _token
 		});
 		expect(response.statusCode).toBe(400);
 	});
@@ -139,8 +171,9 @@ describe('PATCH /jobs/:id', () => {
 
 describe('DELETE /jobs/:id', () => {
 	test('Deletes a single job', async () => {
-		const res = await request(app).delete(`/jobs/${testJob.id}`);
+		const res = await request(app).delete(`/jobs/${testJob.id}`).send({ _token });
 		expect(res.statusCode).toBe(200);
-		expect(res.body).toEqual({ message: `Job ${testJob.id} successfully deleted` });
+		// expect(res.body).toEqual({ message: `Job ${testJob.id} successfully deleted` });
+		expect(res.body).toHaveProperty('message');
 	});
 });

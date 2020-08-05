@@ -65,7 +65,6 @@ router.patch('/:username', checkCorrectUser, validateSchema, checkForUsername, a
 		}
 		const { query, values } = sqlForPartialUpdate('users', req.body, 'username', username);
 		const user = await User.save(query, values);
-		console.log(user);
 		return res.status(200).json({ message: `Successfully updated user with username: ${username}`, user });
 	} catch (error) {
 		return next(error);

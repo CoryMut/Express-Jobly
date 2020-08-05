@@ -5,5 +5,6 @@ services:
   - postgresql
 before_script:
   - psql -c 'create database jobly_test;' -U postgres
+  - psql --dbname=jobly_test --file=jobly_test_seed.sql
 script:
 - npm run test

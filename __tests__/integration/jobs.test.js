@@ -177,3 +177,18 @@ describe('DELETE /jobs/:id', () => {
 		expect(res.body).toHaveProperty('message');
 	});
 });
+
+describe('POST /jobs/:id/apply', () => {
+	test('Sends application to a job posting', async () => {
+		const res = await request(app).post(`/jobs/${testJob.id}/apply`).send({
+			state  : 'interested',
+			_token : _token
+		});
+		expect(res.statusCode).toBe(201);
+		expect(res.body).toHaveProperty('message');
+		expect(res.body).toHaveProperty('application');
+		expect(res.body.application).toHaveProperty('state');
+		expect(res.body.application).toHaveProperty('username');
+		expect(res.body.application).toHaveProperty('job_id');
+	});
+});

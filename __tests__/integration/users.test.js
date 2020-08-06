@@ -21,6 +21,8 @@ beforeAll(async () => {
 	);
 
 	testUser = user.rows[0];
+	testUser.jobs = [];
+	testUser.technologies = [];
 
 	const user2 = await db.query(
 		`INSERT INTO users 
@@ -31,6 +33,8 @@ beforeAll(async () => {
 		[ hashedPassword ]
 	);
 	testUser2 = user2.rows[0];
+	testUser2.jobs = [];
+	testUser2.technologies = [];
 	const response = await request(app).post('/login').send({
 		username : 'testUser',
 		password : 'password'

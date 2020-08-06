@@ -2,7 +2,7 @@ const express = require('express');
 
 const Job = require('../models/job');
 const ExpressError = require('../helpers/expressError');
-const { checkForID, validateSchema, checkForQuery } = require('../middleware/job');
+const { checkForID, validateSchema, checkForQuery, checkForState } = require('../middleware/job');
 const { authRequired, adminRequired } = require('../middleware/auth');
 const router = new express.Router();
 
@@ -61,6 +61,31 @@ router.delete('/:id', adminRequired, checkForID, async (req, res, next) => {
 		const job = await Job.delete(id);
 		return res.status(200).json({ message: `Job ${id} successfully deleted` });
 	} catch (error) {
+		return next(error);
+	}
+});
+
+router.post('/:id/apply', authRequired, checkForState, checkForID, async (req, res, next) => {
+	try {
+		const { id } = req.params;
+		const { state } = req.body;
+		const username = res.locals.username;
+		const application = await Job.application(username, id, state);
+
+		return res.status(201).json({ message: 'Application submitted', application });
+	} catch (error) {
+		console.error(error);
+		if (error.code === '23505') {
+			return res.status(409).json({ error: new ExpressError('Already submitted application to this job.', 409) });
+		}
+		if (error.code === '22P02') {
+			return res.status(409).json({
+				error : new ExpressError(
+					'Invalid state. State must be either: interested, applied, accepted, rejected',
+					400
+				)
+			});
+		}
 		return next(error);
 	}
 });

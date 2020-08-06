@@ -4,13 +4,15 @@ const { BCRYPT_WORK_FACTOR } = require('../config');
 const bcrypt = require('bcrypt');
 
 class User {
-	constructor({ username, first_name, last_name, email, photo_url, is_admin }) {
+	constructor({ username, first_name, last_name, email, photo_url, is_admin, jobs, technologies }) {
 		(this.username = username),
 			(this.first_name = first_name),
 			(this.last_name = last_name),
 			(this.email = email),
 			(this.photo_url = photo_url || null),
-			(this.is_admin = is_admin || false);
+			(this.is_admin = is_admin || false),
+			(this.jobs = jobs || []),
+			(this.technologies = technologies || []);
 	}
 
 	/** find all companies. */
@@ -40,6 +42,19 @@ class User {
 		if (user === undefined) {
 			throw new ExpressError(`No user found with username: ${username}`, 404);
 		}
+
+		const userJobs = await db.query(
+			`SELECT j.title, a.state FROM applications AS a JOIN jobs AS j ON j.id = a.job_id WHERE username = $1`,
+			[ user.username ]
+		);
+
+		const userTech = await db.query(
+			`SELECT t.technology FROM technologies_users AS tu JOIN technologies AS t ON t.id = tu.technology_id WHERE tu.username = $1`,
+			[ user.username ]
+		);
+
+		user.jobs = userJobs.rows;
+		user.technologies = userTech.rows;
 
 		return new User(user);
 	}

@@ -98,6 +98,15 @@ class Job {
 
 		return result.rows[0];
 	}
+
+	static async application(username, id, state) {
+		const result = await db.query(
+			`INSERT INTO applications (username, job_id, state) VALUES ($1,$2,$3) RETURNING *`,
+			[ username, id, state ]
+		);
+		result.rows[0]['created_at'] = moment(result.rows[0]['created_at']).format('MMM Do YY');
+		return result.rows[0];
+	}
 }
 
 module.exports = Job;
